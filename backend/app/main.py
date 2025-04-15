@@ -15,7 +15,7 @@ http://127.0.0.1:8000/api/v1/docs
 """
 
 app = FastAPI(
-    title = "PolicyPal API",
+    title = "Neighbr API",
     description = "API for the Smart Policy Assistant",
     version = "0.1.0",
     openapi_url = "/api/v1/openapi.json",

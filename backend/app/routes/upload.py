@@ -2,6 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from services.upload_service import UploadService
 from utils.pdf_utils import PDFProcessor
+from services.embeddings import EmbeddingService
 import os
 
 
@@ -10,6 +11,7 @@ router = APIRouter()
 USE_S3 = os.getenv("USE_S3", "false").lower() == "true"
 upload_service = UploadService(use_s3 = USE_S3)
 pdf_processor = PDFProcessor()
+embedding_service = EmbeddingService()
 
 
 @router.post(
@@ -53,6 +55,9 @@ async def upload_pdf(
         
         # Chunk the text into manageable pieces
         chunks = pdf_processor.chunk_text(text)
+        
+        # Generate embeddings for the text chunks
+        embeddings = await embedding_service.get_embeddings(chunks)
         
         # Return the response with file path and chunk information
         return JSONResponse(
