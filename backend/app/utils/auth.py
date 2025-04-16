@@ -9,7 +9,7 @@ import os
 # You can move these to environment variables in production
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = os.getenv("JWT_ALGORITHM")
-ACCESS_TOKEN_EXPIRE_MINUTES = 43800
+ACCESS_TOKEN_EXPIRE_MINUTES = 44640  # 31 days
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl = "/auth/login")
 
