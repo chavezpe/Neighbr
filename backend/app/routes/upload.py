@@ -1,10 +1,11 @@
-from fastapi import APIRouter, UploadFile, File, Form
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from services.upload_service import UploadService
 from utils.pdf_utils import PDFProcessor
 from services.embeddings import EmbeddingService
 import os
 from utils.db_instance import db
+from utils.auth import verify_token
 
 
 router = APIRouter()
@@ -25,16 +26,30 @@ embedding_service = EmbeddingService()
 async def upload_pdf(
         file: UploadFile = File(...),
         hoa_code: str = Form(...),
-        document_type: str = Form(...)
+        document_type: str = Form(...),
+        payload: dict = Depends(verify_token)
         ):
     """
     Endpoint to upload a PDF file to a local or S3 bucket path specific to an HOA.
 
     :param file: PDF file to upload
+    :type file: UploadFile
     :param hoa_code: 9-digit alphanumeric HOA code used for folder naming
+    :type hoa_code: str
     :param document_type: Description of the document (used to name the file)
+    :type document_type: str
+    :param payload: Decoded JWT token payload
+    :type payload: dict
+    
     :return: JSON response with the file path or URL
+    :rtype: dict
     """
+    
+    # Check if the user is an admin
+    if not payload.get("is_admin"):
+        
+        # Raise an HTTP exception if the user is not an admin
+        raise HTTPException(status_code = 403, detail = "Admin access required.")
     
     if not file.filename.endswith(".pdf"):
         
