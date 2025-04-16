@@ -37,6 +37,7 @@ class UploadService:
         # Check if S3 is enabled
         if self.use_s3:
             
+            # Get S3 bucket name from environment variables (also used for the local path)
             self.bucket_name = os.getenv("S3_BUCKET_NAME")
             
             self.s3_client = boto3.client("s3")
@@ -61,14 +62,18 @@ class UploadService:
         # Sanitize and format the document_type to be file-safe
         safe_name = document_type.strip().replace(" ", "_").lower() + ".pdf"
         
+        # Create the folder path using the HOA code
         folder_path = f"{hoa_code}/docs/"
         
+        # Ensure the folder path ends with a slash
         file_path = folder_path + safe_name
         
+        # Check if S3 is enabled
         if self.use_s3:
             
             return await self._upload_to_s3(file, file_path)
         
+        # If S3 is not enabled, save the file locally
         else:
             
             return await self._save_to_local(file, file_path)
@@ -90,17 +95,24 @@ class UploadService:
         
         """
         
+        # Sanitize and format the file path
         full_path = os.path.join(self.upload_dir, file_path)
         
+        # Create the directory if it doesn't exist
         os.makedirs(os.path.dirname(full_path), exist_ok = True)
         
+        # Write the file to the local path
         with open(full_path, "wb") as f:
-        
+            
+            # Read the file bytes
             content = await file.read()
-        
+            
+            # Write the content to the file
             f.write(content)
         
+        # Return the local file path
         return full_path
+    
     
     async def _upload_to_s3(self, file: UploadFile, file_path: str) -> str:
         
@@ -118,18 +130,22 @@ class UploadService:
         """
         
         try:
-        
+            
+            # Read the file bytes
             file_content = await file.read()
         
+            # Upload the file to S3
             self.s3_client.put_object(
                     Bucket = self.bucket_name,
                     Key = file_path,
                     Body = file_content,
                     ContentType = file.content_type,
                     )
-        
+            
+            # Return the public URL
             return f"https://{self.bucket_name}.s3.amazonaws.com/{file_path}"
         
+        ## Handle S3 upload errors
         except (NoCredentialsError, ClientError) as e:
         
             raise RuntimeError(f"S3 upload failed: {e}")
