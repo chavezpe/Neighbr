@@ -4,6 +4,7 @@ from services.upload_service import UploadService
 from utils.pdf_utils import PDFProcessor
 from services.embeddings import EmbeddingService
 import os
+from utils.db_instance import db
 
 
 router = APIRouter()
@@ -50,22 +51,33 @@ async def upload_pdf(
         # Read the file bytes for processing
         file_bytes = await file.read()
         
-        # Extract text from the PDF
-        text = pdf_processor.extract_text(file_bytes)
+        # Extract chunks with metadata
+        chunk_data = pdf_processor.extract_and_chunk(file_bytes)
         
-        # Chunk the text into manageable pieces
-        chunks = pdf_processor.chunk_text(text)
+        # Get just the text from each chunk
+        texts = [item["chunk"] for item in chunk_data]
         
-        # Generate embeddings for the text chunks
-        embeddings = await embedding_service.get_embeddings(chunks)
+        # Generate embeddings for each text chunk
+        embeddings = await embedding_service.get_embeddings(texts)
+        
+        # Pair each embedding with its metadata
+        for item, embedding in zip(chunk_data, embeddings):
+            
+            # Insert the embedding into the database
+            await db.insert_embedding(
+                    hoa_code = hoa_code,
+                    document_type = document_type,
+                    chunk_index = item["chunk_index"],
+                    page_number = item["page_number"],
+                    content = item["chunk"],
+                    embedding = embedding,
+                    )
         
         # Return the response with file path and chunk information
         return JSONResponse(
                 content = {
                     "message": "File uploaded and processed successfully",
                     "path": file_path,
-                    "chunk_count": len(chunks),
-                    "avg_chunk_size": sum(len(c) for c in chunks) // len(chunks) if chunks else 0
                     }
                 )
     
