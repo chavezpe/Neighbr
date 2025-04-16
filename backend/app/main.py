@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 # from routes.query import router as query_router
 from routes.upload import router as upload_router
 # from routes.admin import router as admin_router
+from utils.db_instance import db
 
 
 """
@@ -15,13 +16,28 @@ http://127.0.0.1:8000/api/v1/docs
 """
 
 app = FastAPI(
-    title = "Neighbr API",
-    description = "API for the Smart Policy Assistant",
-    version = "0.1.0",
-    openapi_url = "/api/v1/openapi.json",
-    docs_url = "/api/v1/docs",
-    redoc_url = "/api/v1/redoc",
-    )
+        title = "Neighbr API",
+        description = "API for the Smart Policy Assistant",
+        version = "0.1.0",
+        openapi_url = "/api/v1/openapi.json",
+        docs_url = "/api/v1/docs",
+        redoc_url = "/api/v1/redoc",
+        openapi_tags = [
+                {
+                        "name": "upload",
+                        "description": "Upload and process PDF files.",
+                        },
+                {
+                        "name": "query",
+                        "description": "Query the database.",
+                        },
+                {
+                        "name": "admin",
+                        "description": "Admin operations.",
+                        },
+                ],
+        )
+
 
 # Optional: Enable CORS in development mode
 app.add_middleware(
@@ -31,6 +47,21 @@ app.add_middleware(
         allow_methods = ["*"],
         allow_headers = ["*"],
         )
+
+
+@app.on_event("startup")
+async def startup_event():
+    
+    await db.connect()
+    
+    # Create the table if it doesn't exist
+    await db.create_table_if_not_exists_embeddings()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    
+    await db.disconnect()
 
 
 # Health check route
