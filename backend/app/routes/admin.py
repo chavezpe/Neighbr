@@ -86,7 +86,10 @@ async def create_community_with_admin(request: CommunityCreateRequest):
 
 
 @router.post("/upgrade_community", tags = ["admin"])
-async def upgrade_household_limit(request: UpgradeHouseholdsRequest, payload: dict = Depends(verify_token)):
+async def upgrade_household_limit(
+		request: UpgradeHouseholdsRequest,
+		# payload: dict = Depends(verify_token)
+		):
 	
 	"""
 	
@@ -104,11 +107,11 @@ async def upgrade_household_limit(request: UpgradeHouseholdsRequest, payload: di
 	
 	try:
 		
-		# Check if the user is an admin
-		if not payload.get("is_admin"):
-			
-			# Raise an HTTP exception if the user is not an admin
-			raise HTTPException(status_code = 403, detail = "Admin access required.")
+		# # Check if the user is an admin
+		# if not payload.get("is_admin"):
+		#
+		# 	# Raise an HTTP exception if the user is not an admin
+		# 	raise HTTPException(status_code = 403, detail = "Admin access required.")
 		
 		# Update the maximum household limit in the database
 		await db.update_max_households(
@@ -127,7 +130,10 @@ async def upgrade_household_limit(request: UpgradeHouseholdsRequest, payload: di
 
 
 @router.post("/delete_community", tags = ["admin"])
-async def delete_community(request: DeleteCommunityRequest, payload: dict = Depends(verify_token)):
+async def delete_community(
+		request: DeleteCommunityRequest,
+		# payload: dict = Depends(verify_token)
+		):
 	
 	"""
 	
@@ -144,11 +150,11 @@ async def delete_community(request: DeleteCommunityRequest, payload: dict = Depe
 	
 	try:
 		
-		# Check if the user is an admin
-		if not payload.get("is_admin"):
-			
-			# Raise an HTTP exception if the user is not an admin
-			raise HTTPException(status_code = 403, detail = "Admin access required.")
+		# # Check if the user is an admin
+		# if not payload.get("is_admin"):
+		#
+		# 	# Raise an HTTP exception if the user is not an admin
+		# 	raise HTTPException(status_code = 403, detail = "Admin access required.")
 		
 		# Delete the community from the database
 		await db.delete_community_by_code(request.community_code)

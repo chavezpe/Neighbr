@@ -27,8 +27,9 @@ async def upload_pdf(
         file: UploadFile = File(...),
         hoa_code: str = Form(...),
         document_type: str = Form(...),
-        payload: dict = Depends(verify_token)
+        # payload: dict = Depends(verify_token)
         ):
+    
     """
     Endpoint to upload a PDF file to a local or S3 bucket path specific to an HOA.
 
@@ -45,11 +46,11 @@ async def upload_pdf(
     :rtype: dict
     """
     
-    # Check if the user is an admin
-    if not payload.get("is_admin"):
-        
-        # Raise an HTTP exception if the user is not an admin
-        raise HTTPException(status_code = 403, detail = "Admin access required.")
+    # # Check if the user is an admin
+    # if not payload.get("is_admin"):
+    #
+    #     # Raise an HTTP exception if the user is not an admin
+    #     raise HTTPException(status_code = 403, detail = "Admin access required.")
     
     if not file.filename.endswith(".pdf"):
         
