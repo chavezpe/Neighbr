@@ -68,3 +68,38 @@ class EmbeddingService:
 			logging.exception("Failed to generate embeddings")
 			
 			raise RuntimeError(f"Embedding generation failed: {str(e)}")
+	
+	
+	async def get_query_embedding(self, text: str) -> List[float]:
+		
+		"""
+		
+		Generate a vector embedding for a single query string.
+
+		:param text: The query text to embed.
+		:type text: str
+
+		:return: Embedding vector for the query.
+		:rtype: List[float]
+		"""
+		
+		try:
+			
+			clean_text = text.replace("\n", " ").strip()
+			
+			response = await self.client.embeddings.create(
+					input = [clean_text],
+					model = self.model
+					)
+			
+			# Return the embedding from the response
+			return response.data[0].embedding
+		
+		# Handle any exceptions that occur during the API call
+		except Exception as e:
+			
+			# Log the exception for debugging
+			logging.exception("Failed to generate query embedding")
+			
+			# Raise a runtime error with the exception message
+			raise RuntimeError(f"Query embedding generation failed: {str(e)}")
