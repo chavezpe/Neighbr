@@ -156,7 +156,7 @@ class Database:
 			hoa_code: str,
 			top_k: int = 3,
 			) -> list[dict]:
-
+		
 		"""
 		Retrieve relevant chunks and their surrounding context based on vector similarity.
 
@@ -185,7 +185,7 @@ class Database:
 			# Step 1: Get top-K most relevant chunks by similarity
 			top_chunks = await conn.fetch(
 					"""
-					SELECT chunk_index, document_type
+					SELECT chunk_index, document_type, page_number
 					FROM document_embeddings
 					WHERE hoa_code = $1
 					ORDER BY embedding <#> $2 ASC
@@ -196,88 +196,109 @@ class Database:
 					top_k,
 					)
 			
-			# Step 2: Get max chunk_index for each relevant document_type
-			document_types = list(set(chunk["document_type"] for chunk in top_chunks))
+			if not top_chunks:
+				return []
 			
-			# Fetch max chunk index for each document type
-			max_chunk_results = await conn.fetch(
+			# Step 2: Pre-fetch the relevant chunks for all pages in one query (window function for previous/next
+			# chunk)
+			chunk_data = await conn.fetch(
 					"""
-					SELECT document_type, MAX(chunk_index) AS max_index
+					SELECT chunk_index, document_type, page_number,
+						LEAD(chunk_index) OVER (PARTITION BY document_type, page_number ORDER BY chunk_index) AS
+						next_chunk,
+						LAG(chunk_index) OVER (PARTITION BY document_type, page_number ORDER BY chunk_index)  AS
+						prev_chunk
 					FROM document_embeddings
-					WHERE hoa_code = $1 AND document_type = ANY($2::text[])
-					GROUP BY document_type
+					WHERE hoa_code = $1 AND document_type = ANY ($2:: text [])
+					ORDER BY document_type, page_number, chunk_index
 					""",
 					hoa_code,
-					document_types,
+					list({row["document_type"] for row in top_chunks}),
 					)
 			
-			# Create a mapping of document_type to max_index
-			max_chunk_map = {row["document_type"]: row["max_index"] for row in max_chunk_results}
-			
-			# Step 3: For each top chunk, collect -1, 0, +1 (if in bounds)
-			context_query_params = []
-			
-			# Iterate through the top chunks and collect context query parameters
-			for chunk in top_chunks:
+			# Step 3: Iterate through the top chunks and apply the context logic
+			context_chunks = []
+			for row in top_chunks:
+				doc_type = row["document_type"]
+				chunk_index = row["chunk_index"]
+				page_number = row["page_number"]
 				
-				# Get the chunk index and document type
-				chunk_index = chunk["chunk_index"]
+				# Find the chunk data for the current chunk
+				chunk_info = next(
+						(item for item in chunk_data if item["document_type"] == doc_type and item["page_number"] ==
+							page_number and item["chunk_index"] == chunk_index),
+						None
+						)
 				
-				# Get the max index for the document type
-				document_type = chunk["document_type"]
+				# Initialize context indices
+				context_indices = []
 				
-				# Get the max index for the current document type
-				max_index = max_chunk_map[document_type]
-				
-				# Collect the context query parameters for -1, 0, +1 offsets
-				for offset in [-1, 0, 1]:
+				# If we have found the chunk data, we can directly check the previous and next chunks
+				if chunk_info:
+					# If it's the first chunk on the page, check previous page's last chunk
+					if chunk_index == 0:
+						prev_page_max = next(
+								(item for item in chunk_data if item["document_type"] == doc_type and item[
+									"page_number"] == page_number - 1),
+								None
+								)
+						if prev_page_max:
+							context_indices.append((doc_type, prev_page_max["chunk_index"], page_number - 1))
+						# Add the next chunk (same page)
+						if chunk_info["next_chunk"]:
+							context_indices.append((doc_type, chunk_info["next_chunk"], page_number))
 					
-					# Calculate the new index
-					idx = chunk_index + offset
+					# If it's the last chunk on the page, check next page's first chunk
+					elif chunk_info["next_chunk"] is None:
+						next_page_first = next(
+								(item for item in chunk_data if item["document_type"] == doc_type and item[
+									"page_number"] == page_number + 1),
+								None
+								)
+						if next_page_first:
+							context_indices.append((doc_type, next_page_first["chunk_index"], page_number + 1))
+						# Add the previous chunk (same page)
+						if chunk_info["prev_chunk"]:
+							context_indices.append((doc_type, chunk_info["prev_chunk"], page_number))
 					
-					# Check if the index is within bounds
-					if 0 <= idx <= max_index:
+					# If it's a middle chunk, add the previous and next chunks (same page)
+					else:
+						if chunk_info["prev_chunk"]:
+							context_indices.append((doc_type, chunk_info["prev_chunk"], page_number))
+						if chunk_info["next_chunk"]:
+							context_indices.append((doc_type, chunk_info["next_chunk"], page_number))
+					
+					# Add the current chunk as context
+					context_indices.append((doc_type, chunk_index, page_number))
+					
+					# Add all the context indices to the result, ensuring no duplicates
+					for context in context_indices:
+						if context not in context_chunks:
+							context_chunks.append(context)
 						
-						# Append the parameters to the context query list
-						context_query_params.append((hoa_code, document_type, idx))
+			# Fetch the actual content for all context chunks in one query
+			hoa_codes = [hoa_code] * len(context_chunks)
+			doc_types = [x[0] for x in context_chunks]
+			chunk_indices = [x[1] for x in context_chunks]
+			page_numbers = [x[2] for x in context_chunks]
 			
-			# Step 4: Deduplicate context chunks
-			context_query_params = list(set(context_query_params))
-			
-			# Step 5: Fetch all contextual chunks
-			all_chunks = await conn.fetch(
+			# Fetch the content for all context chunks in one query
+			context_chunks_data = await conn.fetch(
 					"""
 					SELECT chunk_index, content, document_type, page_number
 					FROM document_embeddings
-					WHERE (hoa_code, document_type, chunk_index) IN (
-						SELECT x.hoa_code, x.document_type, x.chunk_index
-						FROM UNNEST($1::text[], $2::text[], $3::int[]) AS x(hoa_code, document_type, chunk_index)
+					WHERE (hoa_code, document_type, chunk_index, page_number) IN (
+						SELECT * FROM UNNEST($1::text[], $2::text[], $3::int[], $4::int[])
 					)
-					ORDER BY document_type, chunk_index
+					ORDER BY document_type, page_number, chunk_index
 					""",
-					[c[0] for c in context_query_params],  # hoa_code
-					[c[1] for c in context_query_params],  # document_type
-					[c[2] for c in context_query_params],  # chunk_index
+					hoa_codes,
+					doc_types,
+					chunk_indices,
+					page_numbers
 					)
 		
-		# Deduplicate by (document_type, chunk_index)
-		unique_chunks = {}
-		
-		# Iterate through all chunks and keep only unique ones
-		for row in all_chunks:
-			
-			# Create a unique key for each chunk based on document_type and chunk_index
-			key = (row["document_type"], row["chunk_index"])
-			
-			# If the key is not already in the unique_chunks dictionary, add it
-			if key not in unique_chunks:
-				
-				# Store the chunk in the unique_chunks dictionary
-				unique_chunks[key] = dict(row)
-		
-		# Return deduplicated list of chunks
-		return list(unique_chunks.values())
-	
+		return context_chunks_data
 	
 	
 	async def create_tables_for_users_and_communities(self):
