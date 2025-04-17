@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
-# from routes.query import router as query_router
+from routes.query import router as query_router
 from routes.upload import router as upload_router
 from routes.admin import router as admin_router
 from routes.auth import router as auth_router
@@ -90,7 +90,7 @@ def read_root():
 
 
 # # Mount routers
-# app.include_router(query_router, prefix = "/query", tags = ["query"])
+app.include_router(query_router, prefix = "/query", tags = ["query"])
 app.include_router(upload_router, prefix = "/upload", tags = ["upload"])
 app.include_router(admin_router, prefix = "/admin", tags = ["admin"])
 app.include_router(auth_router, prefix = "/auth", tags = ["auth"])
