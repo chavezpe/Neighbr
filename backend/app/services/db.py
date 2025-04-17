@@ -60,7 +60,7 @@ class Database:
 				min_size = 1,
 				max_size = 5,
 				)
-		
+	
 	
 	async def disconnect(self):
 		
@@ -89,7 +89,6 @@ class Database:
 		
 		# Get the connection from the pool
 		async with self.pool.acquire() as conn:
-			
 			# Execute the SQL command to create the table
 			await conn.execute(
 					"""
@@ -151,6 +150,136 @@ class Database:
 					)
 	
 	
+	async def get_relevant_chunks_with_context(
+			self,
+			query_embedding: list[float],
+			hoa_code: str,
+			top_k: int = 3,
+			) -> list[dict]:
+
+		"""
+		Retrieve relevant chunks and their surrounding context based on vector similarity.
+
+		:param query_embedding: The embedding vector of the user's query
+		:type query_embedding: list[float]
+		:param hoa_code: HOA code to filter relevant documents
+		:type hoa_code: str
+		:param top_k: Number of top relevant base chunks to retrieve
+		:type top_k: int
+
+		:return: Ordered list of chunks with context
+		:rtype: List[dict]
+		
+		"""
+		
+		# Check if the pool is initialized
+		if not self.pool:
+			raise RuntimeError("Database connection pool is not initialized.")
+		
+		# Convert the Python list to a string for PostgreSQL vector
+		embedding_str = str(query_embedding)
+		
+		# Get the connection from the pool
+		async with self.pool.acquire() as conn:
+			
+			# Step 1: Get top-K most relevant chunks by similarity
+			top_chunks = await conn.fetch(
+					"""
+					SELECT chunk_index, document_type
+					FROM document_embeddings
+					WHERE hoa_code = $1
+					ORDER BY embedding <#> $2 ASC
+					LIMIT $3
+					""",
+					hoa_code,
+					embedding_str,
+					top_k,
+					)
+			
+			# Step 2: Get max chunk_index for each relevant document_type
+			document_types = list(set(chunk["document_type"] for chunk in top_chunks))
+			
+			# Fetch max chunk index for each document type
+			max_chunk_results = await conn.fetch(
+					"""
+					SELECT document_type, MAX(chunk_index) AS max_index
+					FROM document_embeddings
+					WHERE hoa_code = $1 AND document_type = ANY($2::text[])
+					GROUP BY document_type
+					""",
+					hoa_code,
+					document_types,
+					)
+			
+			# Create a mapping of document_type to max_index
+			max_chunk_map = {row["document_type"]: row["max_index"] for row in max_chunk_results}
+			
+			# Step 3: For each top chunk, collect -1, 0, +1 (if in bounds)
+			context_query_params = []
+			
+			# Iterate through the top chunks and collect context query parameters
+			for chunk in top_chunks:
+				
+				# Get the chunk index and document type
+				chunk_index = chunk["chunk_index"]
+				
+				# Get the max index for the document type
+				document_type = chunk["document_type"]
+				
+				# Get the max index for the current document type
+				max_index = max_chunk_map[document_type]
+				
+				# Collect the context query parameters for -1, 0, +1 offsets
+				for offset in [-1, 0, 1]:
+					
+					# Calculate the new index
+					idx = chunk_index + offset
+					
+					# Check if the index is within bounds
+					if 0 <= idx <= max_index:
+						
+						# Append the parameters to the context query list
+						context_query_params.append((hoa_code, document_type, idx))
+			
+			# Step 4: Deduplicate context chunks
+			context_query_params = list(set(context_query_params))
+			
+			# Step 5: Fetch all contextual chunks
+			all_chunks = await conn.fetch(
+					"""
+					SELECT chunk_index, content, document_type, page_number
+					FROM document_embeddings
+					WHERE (hoa_code, document_type, chunk_index) IN (
+						SELECT x.hoa_code, x.document_type, x.chunk_index
+						FROM UNNEST($1::text[], $2::text[], $3::int[]) AS x(hoa_code, document_type, chunk_index)
+					)
+					ORDER BY document_type, chunk_index
+					""",
+					[c[0] for c in context_query_params],  # hoa_code
+					[c[1] for c in context_query_params],  # document_type
+					[c[2] for c in context_query_params],  # chunk_index
+					)
+		
+		# Deduplicate by (document_type, chunk_index)
+		unique_chunks = {}
+		
+		# Iterate through all chunks and keep only unique ones
+		for row in all_chunks:
+			
+			# Create a unique key for each chunk based on document_type and chunk_index
+			key = (row["document_type"], row["chunk_index"])
+			
+			# If the key is not already in the unique_chunks dictionary, add it
+			if key not in unique_chunks:
+				
+				# Store the chunk in the unique_chunks dictionary
+				unique_chunks[key] = dict(row)
+		
+		# Return deduplicated list of chunks
+		return list(unique_chunks.values())
+	
+	
+	
 	async def create_tables_for_users_and_communities(self):
 		
 		"""
@@ -162,7 +291,6 @@ class Database:
 		"""
 		
 		async with self.pool.acquire() as conn:
-			
 			# Execute the SQL command to create the tables
 			await conn.execute(
 					"""
@@ -184,7 +312,7 @@ class Database:
 					);
 					"""
 					)
-			
+	
 	
 	async def add_user_to_community(self, name, email, hashed_password, is_admin, community_code):
 		
@@ -281,7 +409,7 @@ class Database:
 					# If it doesn't exist, break the loop
 					if not exists:
 						break
-						
+					
 					# Generate a new HOA code
 					hoa_code = self.generate_hoa_code()
 				
@@ -318,7 +446,6 @@ class Database:
 		"""
 		
 		async with self.pool.acquire() as conn:
-			
 			# Execute the SQL command to delete the community and its users
 			await conn.execute(
 					"""
@@ -345,7 +472,6 @@ class Database:
 		"""
 		
 		async with self.pool.acquire() as conn:
-			
 			# Send the SQL command to update the maximum number of households
 			await conn.execute(
 					"""
@@ -375,6 +501,5 @@ class Database:
 		
 		# Check if the pool is initialized
 		async with self.pool.acquire() as conn:
-			
 			# Fetch the user record
 			return await conn.fetchrow(query, email)
