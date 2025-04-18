@@ -11,7 +11,7 @@ class RAG:
 	
 	"""
 	
-	def __init__(self, db, embedder, model: str = "gpt-4o-mini"):
+	def __init__(self, db, embedder, model: str = "gpt-4.1-mini"):
 		
 		"""
 	
@@ -58,11 +58,18 @@ class RAG:
 				)
 		
 		prompt = (
-			f"You are an assistant helping with HOA-related questions. Make sure to include the source and page number "
-			f"as \"Source: [source] Page [page] \" in your response\n\n"
+			"You are an AI assistant designed to answer questions using ONLY the provided HOA documents below. "
+			"Do not rely on any external information, assumptions, or general knowledge. "
+			"If the question cannot be answered from the context, respond with:\n"
+			"\"I'm sorry, but I can only answer questions that are supported by the provided HOA documents.\"\n\n"
+			"Instructions:\n"
+			"- Read the context carefully.\n"
+			"- Answer the question only if the answer is clearly supported by the context.\n"
+			"- Cite the source document and page number in this format: Source: [document_type] Page [page_number]\n"
+			"- Do not guess. Do not include information that is not explicitly stated in the context.\n\n"
 			f"Context:\n{context}\n\n"
 			f"Question: {query}\n\n"
-			f"Answer:"
+			"Answer:"
 			)
 		
 		# Return the formatted prompt
@@ -136,13 +143,13 @@ class RAG:
 			# print(relevant_chunks)
 			#
 			# print(len(relevant_chunks))
-
+			
 			# Step 3: Build the prompt for the LLM
 			prompt = await self.build_prompt(relevant_chunks, query)
 			
 			# Step 4: Generate an answer from OpenAI
 			answer = await self.generate_answer(prompt)
-
+			
 			# Step 5: Return full response (answer + sources)
 			return f"{answer}"
 		
