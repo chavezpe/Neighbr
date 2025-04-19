@@ -140,10 +140,6 @@ class RAG:
 			# Step 2: Fetch relevant chunks (with context) from the database
 			relevant_chunks = await self.db.get_relevant_chunks_with_context(query_embedding, hoa_code)
 			
-			# print(relevant_chunks)
-			#
-			# print(len(relevant_chunks))
-			
 			# Step 3: Build the prompt for the LLM
 			prompt = await self.build_prompt(relevant_chunks, query)
 			

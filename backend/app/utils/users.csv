@@ -1,0 +1,2 @@
+id,name,email,hashed_password,is_admin,community_id
+1,Angel Chavez,achavezpen@gmail.com,$2b$12$oBL1CZR0lewZvutuCDXfVuL7mwrErvp.Nm6I.Beki4nVqAKodWfQ2,True,1
