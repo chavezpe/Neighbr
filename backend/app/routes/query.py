@@ -24,7 +24,7 @@ rag_service = RAG(db, embedding_service)
 async def answer_query(
 		query: str,
 		hoa_code: str,
-		# payload: dict = Depends(verify_token)
+		payload: dict = Depends(verify_token)
 		):
 	
 	"""
@@ -44,6 +44,7 @@ async def answer_query(
 	"""
 	
 	try:
+		
 		
 		# Use QueryAnsweringService to get the full response (answer + sources)
 		response = await rag_service.answer_query(query, hoa_code)
