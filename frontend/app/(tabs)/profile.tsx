@@ -268,7 +268,6 @@ const styles = StyleSheet.create({
   footer: {
     marginTop: 'auto',
     alignItems: 'center',
-    marginTop: Layout.spacing.xxl,
   },
   appInfo: {
     fontSize: 16,

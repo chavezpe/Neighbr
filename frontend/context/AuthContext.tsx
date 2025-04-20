@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { loginUser, signupUser, verifyToken } from '../api/auth';
+import { loginUser, signupUser, verifyToken } from '@/api/auth';
 import { jwtDecode } from 'jwt-decode';
 
 type DecodedToken = {
