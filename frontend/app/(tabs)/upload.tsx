@@ -149,7 +149,9 @@ export default function UploadScreen() {
                 </Text>
                 <Text style={styles.fileSize}>
                   {selectedFile.size != null
-                    ? `${(selectedFile.size / 1024).toFixed(1)} KB`
+                    ? selectedFile.size >= 1024 * 1024
+                      ? `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`
+                      : `${(selectedFile.size / 1024).toFixed(1)} KB`
                     : 'Unknown size'}
                 </Text>
               </View>
