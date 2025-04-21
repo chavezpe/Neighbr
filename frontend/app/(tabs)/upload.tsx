@@ -60,36 +60,36 @@ export default function UploadScreen() {
   };
 
   const handleUpload = async () => {
-    if (!validateForm() || !user?.communityId) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const file = {
-        uri: selectedFile.uri,
-        name: selectedFile.name || 'document.pdf',
-        type: 'application/pdf',
-      };
-      
-      await uploadDocument(file, user.communityId, documentType);
-      
-      // Show success state
-      setIsSuccess(true);
-      setDocumentType('');
-      setSelectedFile(null);
-      
-      // Reset success state after 3 seconds
-      setTimeout(() => {
-        setIsSuccess(false);
-      }, 3000);
-    } catch (err) {
-      console.error('Error uploading document:', err);
-      setError('Failed to upload document. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  if (!validateForm() || !user?.communityId || !selectedFile) return;
+
+  setIsLoading(true);
+  setError(null);
+
+  try {
+    const file = {
+      uri: selectedFile.uri,
+      name: selectedFile.name || 'document.pdf',
+      type: 'application/pdf',
+    };
+
+    await uploadDocument(file, user.communityId, documentType);
+
+    // Show success state
+    setIsSuccess(true);
+    setDocumentType('');
+    setSelectedFile(null);
+
+    // Reset success state after 3 seconds
+    setTimeout(() => {
+      setIsSuccess(false);
+    }, 3000);
+  } catch (err) {
+    console.error('Error uploading document:', err);
+    setError('Failed to upload document. Please try again.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   if (!user?.isAdmin) {
     return (
@@ -148,7 +148,9 @@ export default function UploadScreen() {
                   {selectedFile.name || 'document.pdf'}
                 </Text>
                 <Text style={styles.fileSize}>
-                  {(selectedFile.size / 1024).toFixed(1)} KB
+                  {selectedFile.size != null
+                    ? `${(selectedFile.size / 1024).toFixed(1)} KB`
+                    : 'Unknown size'}
                 </Text>
               </View>
               <TouchableOpacity 
