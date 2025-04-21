@@ -172,7 +172,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading: false,
         token: null,
       });
-      router.replace('/(auth)/login');
+      router.replace('/(auth)/login-screen');
     } catch (error) {
       console.error('Logout failed:', error);
     }

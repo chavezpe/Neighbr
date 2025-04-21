@@ -81,7 +81,7 @@ export default function CommunityDetails() {
   };
 
   const handleContinue = () => {
-    router.push('/(auth)/login');
+    router.push('/(auth)/login-screen');
   };
 
   if (hoaCode) {

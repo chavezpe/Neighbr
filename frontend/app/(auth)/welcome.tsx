@@ -41,7 +41,7 @@ export default function Welcome() {
             size="lg" 
             fullWidth 
             style={styles.button} 
-            onPress={() => router.push('/(auth)/login')}
+            onPress={() => router.push('/(auth)/login-screen')}
           />
           <Button 
             title="Sign Up" 

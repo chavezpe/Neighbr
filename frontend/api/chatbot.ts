@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import { API_URL } from '@/constants/Config';
+import { API_URL } from '../constants/Config';
 
 export const sendQuery = async (query: string, hoaCode: string) => {
   try {

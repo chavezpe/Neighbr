@@ -12,12 +12,16 @@ const createFormData = (data: Record<string, string>) => {
 
 export const loginUser = async (email: string, password: string) => {
   try {
-    const formData = createFormData({ email, password });
+    const formData = new URLSearchParams();
+    formData.append('email', email);
+    formData.append('password', password);
+
     const response = await axios.post(`${API_URL}/auth/login`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
     });
+
     return response.data;
   } catch (error) {
     console.error('Login error:', error);
@@ -27,6 +31,7 @@ export const loginUser = async (email: string, password: string) => {
     throw new Error('Network error. Please try again later.');
   }
 };
+
 
 export const signupUser = async (name: string, email: string, password: string, hoaCode: string) => {
   try {

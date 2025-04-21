@@ -1,5 +1,5 @@
 // Replace with your actual API URL
-export const API_URL = 'https://http://127.0.0.1:8000';
+export const API_URL = 'http://192.168.68.108:8000';
 
 // Stripe publishable key (replace with your actual key)
 export const STRIPE_PUBLISHABLE_KEY = 'pk_test_your_stripe_publishable_key';
