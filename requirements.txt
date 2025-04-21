@@ -1,0 +1,10 @@
+python-jose~=3.4.0
+fastapi~=0.115.12
+asyncpg~=0.30.0
+pandas~=2.2.3
+python-dotenv~=1.1.0
+bcrypt~=4.3.0
+pydantic~=2.11.3
+openai~=1.74.0
+boto3~=1.37.34
+botocore~=1.37.34
