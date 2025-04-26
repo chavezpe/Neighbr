@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Form, HTTPException, status
+from fastapi import APIRouter, Form, HTTPException, status, Depends
 from utils.auth import create_access_token
 from utils.db_instance import db
 from utils.security import hash_password, verify_password
+from utils.auth import verify_token
 
 
 router = APIRouter()
@@ -127,3 +128,13 @@ async def login(email: str = Form(...), password: str = Form(...)):
 		"access_token": token,
 		"token_type": "bearer"
 		}
+
+
+@router.get("/verify")
+async def verify_user(payload: dict = Depends(verify_token)):
+	
+	"""
+	Verify a user's token and return user payload if valid.
+	"""
+	
+	return {"status": "ok", "user": payload}

@@ -86,16 +86,12 @@ export const createCommunity = async (
 
 export const verifyToken = async (token: string): Promise<boolean> => {
   try {
-    await axios.get(`${API_URL}/query/answer_query`, {
-      params: {
-        query: 'test',
-        hoa_code: 'test',
-      },
+    const response = await axios.get(`${API_URL}/auth/verify`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    return true;
+    return response.status === 200;
   } catch (error) {
     console.error('Token verification error:', error);
     return false;
