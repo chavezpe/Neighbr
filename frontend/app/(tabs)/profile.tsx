@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LogOut, Settings, HelpCircle, Shield, UserCircle, Home } from 'lucide-react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Animated } from 'react-native';
+import { LogOut, Settings, CircleHelp as HelpCircle, Shield, CircleUser as UserCircle, Chrome as Home } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -10,126 +9,124 @@ import Layout from '@/constants/Layout';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
-  
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
   const handleLogout = () => {
     Alert.alert(
       'Confirm Logout',
       'Are you sure you want to log out?',
       [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Logout',
-          onPress: logout,
-          style: 'destructive',
-        },
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Logout', onPress: logout, style: 'destructive' },
       ],
       { cancelable: true }
     );
   };
 
   return (
-    <SafeAreaView edges={['top']} style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Profile</Text>
-        <Text style={styles.subtitle}>Manage your account</Text>
-      </View>
-      
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.profileSection}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <UserCircle size={60} color={Colors.white} />
+    <View style={styles.container}>
+      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.profileSection}>
+            <View style={styles.avatarContainer}>
+              <View style={styles.avatar}>
+                <UserCircle size={60} color={Colors.white} />
+              </View>
+              {user?.isAdmin && (
+                <View style={styles.adminBadge}>
+                  <Shield size={16} color={Colors.white} />
+                </View>
+              )}
             </View>
-            {user?.isAdmin && (
-              <View style={styles.adminBadge}>
-                <Shield size={16} color={Colors.white} />
-              </View>
-            )}
-          </View>
-          
-          <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{user?.email.split('@')[0] || 'User'}</Text>
-            <Text style={styles.profileEmail}>{user?.email || 'user@example.com'}</Text>
-            {user?.isAdmin && (
-              <View style={styles.roleChip}>
-                <Text style={styles.roleText}>Administrator</Text>
-              </View>
-            )}
-          </View>
-          
-          <Button
-            title="Edit Profile"
-            variant="outline"
-            size="sm"
-            style={styles.editButton}
-          />
-        </View>
-        
-        <Text style={styles.sectionTitle}>Account</Text>
-        
-        <Card style={styles.menuCard}>
-          <MenuItem 
-            icon={<Home size={22} color={Colors.primary[500]} />}
-            title="My Community"
-            subtitle={user?.communityId ? 'View community details' : 'Not joined yet'}
-          />
-          
-          <MenuItem 
-            icon={<Settings size={22} color={Colors.neutral[700]} />}
-            title="Account Settings"
-            subtitle="Notifications, preferences"
-          />
-          
-          {user?.isAdmin && (
-            <MenuItem 
-              icon={<Shield size={22} color={Colors.secondary[500]} />}
-              title="Admin Controls"
-              subtitle="Manage community settings"
+
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{user?.email.split('@')[0] || 'User'}</Text>
+              <Text style={styles.profileEmail}>{user?.email || 'user@example.com'}</Text>
+              {user?.isAdmin && (
+                <View style={styles.roleChip}>
+                  <Text style={styles.roleText}>Administrator</Text>
+                </View>
+              )}
+            </View>
+
+            <Button
+              title="Edit Profile"
+              variant="outline"
+              size="sm"
+              style={styles.editButton}
+              leftIcon={<Settings size={16} color={Colors.primary[500]} />}
             />
-          )}
-          
-          <MenuItem 
-            icon={<HelpCircle size={22} color={Colors.accent[500]} />}
-            title="Help & Support"
-            subtitle="FAQs, contact support"
+          </View>
+
+          <Text style={styles.sectionTitle}>Account</Text>
+
+          <Card style={styles.menuCard}>
+            <MenuItem
+              icon={<Home size={22} color={Colors.primary[500]} />}
+              title="My Community"
+              subtitle={user?.communityId ? 'View community details' : 'Not joined yet'}
+            />
+            <MenuItem
+              icon={<Settings size={22} color={Colors.neutral[700]} />}
+              title="Account Settings"
+              subtitle="Notifications, preferences"
+            />
+            {user?.isAdmin && (
+              <MenuItem
+                icon={<Shield size={22} color={Colors.secondary[500]} />}
+                title="Admin Controls"
+                subtitle="Manage community settings"
+              />
+            )}
+            <MenuItem
+              icon={<HelpCircle size={22} color={Colors.accent[500]} />}
+              title="Help & Support"
+              subtitle="FAQs, contact support"
+            />
+          </Card>
+
+          <Button
+            title="Log Out"
+            variant="ghost"
+            size="md"
+            onPress={handleLogout}
+            style={styles.logoutButton}
+            textStyle={styles.logoutButtonText}
+            fullWidth
+            leftIcon={<LogOut size={18} color={Colors.error.main} />}
           />
-        </Card>
-        
-        <Button
-          title="Log Out"
-          variant="ghost"
-          size="md"
-          onPress={handleLogout}
-          style={styles.logoutButton}
-          textStyle={styles.logoutButtonText}
-          fullWidth
-        />
-        
-        <View style={styles.footer}>
-          <Text style={styles.appInfo}>Neighbr HOA Assistant</Text>
-          <Text style={styles.version}>Version 1.0.0</Text>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+
+          <View style={styles.footer}>
+            <Text style={styles.appInfo}>Neighbr HOA Assistant</Text>
+            <Text style={styles.version}>Version 1.0.0</Text>
+          </View>
+        </ScrollView>
+      </Animated.View>
+    </View>
   );
 }
 
-function MenuItem({ 
-  icon, 
-  title, 
-  subtitle, 
-  onPress 
-}: { 
-  icon: React.ReactNode; 
-  title: string; 
-  subtitle: string; 
+function MenuItem({ icon, title, subtitle, onPress }: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
   onPress?: () => void;
 }) {
   return (
-    <TouchableOpacity style={styles.menuItem} onPress={onPress} disabled={!onPress}>
+    <TouchableOpacity
+      style={styles.menuItem}
+      onPress={onPress}
+      disabled={!onPress}
+      activeOpacity={onPress ? 0.7 : 1}
+    >
       <View style={styles.menuItemIcon}>{icon}</View>
       <View style={styles.menuItemContent}>
         <Text style={styles.menuItemTitle}>{title}</Text>
@@ -142,21 +139,7 @@ function MenuItem({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.neutral[50],
-  },
-  header: {
-    backgroundColor: Colors.primary[500],
-    padding: Layout.spacing.lg,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.white,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: Colors.primary[100],
-    marginTop: 2,
+    backgroundColor: Colors.white,
   },
   content: {
     padding: Layout.spacing.lg,
@@ -238,9 +221,9 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.neutral[100],
   },
   menuItemIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.neutral[100],
     justifyContent: 'center',
     alignItems: 'center',
@@ -266,7 +249,7 @@ const styles = StyleSheet.create({
     color: Colors.error.main,
   },
   footer: {
-    marginTop: 'auto',
+    marginTop: Layout.spacing.xxl,
     alignItems: 'center',
   },
   appInfo: {

@@ -1,12 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Bell, FileText, MessageSquare, Users } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+  Animated
+} from 'react-native';
 import { router } from 'expo-router';
+import { Bell, FileText, MessageSquare, Users, Calendar } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import Card from '@/components/ui/Card';
+import Header from '@/components/Header';
 import Colors from '@/constants/Colors';
 import Layout from '@/constants/Layout';
+import { useNavigation } from 'expo-router';
+import { useLayoutEffect } from 'react';
+
+// Hide the default header from Expo Router
+export const options = {
+  headerShown: false,
+};
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -16,118 +31,146 @@ export default function HomeScreen() {
     { id: 2, title: 'Community meeting this Thursday', time: '1d ago' },
   ]);
 
-  // In a real app, you would fetch the community name from the API
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+
+  // Hide default header
+  const navigation = useNavigation();
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: false,
+    });
+  }, [navigation]);
+
   useEffect(() => {
     // Simulating API call to get community name
     setTimeout(() => {
-      setCommunityName('Sunset Heights HOA');
+      setCommunityName('Oakwood Estates HOA');
     }, 1000);
+
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
   }, []);
 
   return (
-    <SafeAreaView edges={['top']} style={styles.container}>
-      <ScrollView>
-        <View style={styles.header}>
-          <Text style={styles.welcomeText}>
-            Welcome{user?.isAdmin ? ', Admin' : ''}
-          </Text>
-          <Text style={styles.communityName}>{communityName}</Text>
-        </View>
+    <View style={styles.container}>
+      <Header
+        showLogo={true}
+        communityName={communityName}
+        rightComponent={<TouchableOpacity
+          style={styles.profileButton}
+          onPress={() => router.push('/(tabs)/profile')}
+        >
+          <View style={styles.profileAvatar} />
+        </TouchableOpacity>} title={''}      />
 
-        <View style={styles.heroContainer}>
-          <Image 
-            source={{ uri: 'https://images.pexels.com/photos/3847500/pexels-photo-3847500.jpeg' }}
-            style={styles.heroImage}
-          />
-          <View style={styles.heroContent}>
-            <Text style={styles.heroTitle}>Have a Question?</Text>
-            <Text style={styles.heroSubtitle}>Ask our policy assistant</Text>
-            <TouchableOpacity 
-              style={styles.heroButton}
-              onPress={() => router.push('/(tabs)/chatbot')}
-            >
-              <Text style={styles.heroButtonText}>Chat Now</Text>
-              <MessageSquare size={16} color={Colors.white} style={{ marginLeft: 6 }} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.quickLinks}>
-          <Text style={styles.sectionTitle}>Quick Access</Text>
-          <View style={styles.linkGrid}>
-            <QuickLinkItem 
-              icon={<FileText size={24} color={Colors.primary[500]} />}
-              title="Documents"
-              onPress={() => router.push('/(tabs)/documents')}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <View style={styles.heroContainer}>
+            <Image
+              style={styles.heroImage}
+              source= {require('@/assets/images/marble.jpeg')}
+              resizeMode="cover"
             />
-            <QuickLinkItem 
-              icon={<MessageSquare size={24} color={Colors.accent[500]} />}
-              title="Assistant"
-              onPress={() => router.push('/(tabs)/chatbot')}
-            />
-            {user?.isAdmin ? (
-              <QuickLinkItem 
-                icon={<Users size={24} color={Colors.secondary[500]} />}
-                title="Members"
-                onPress={() => {}}
-              />
-            ) : (
-              <QuickLinkItem 
-                icon={<Bell size={24} color={Colors.secondary[500]} />}
-                title="Notifications"
-                onPress={() => {}}
-              />
-            )}
           </View>
-        </View>
 
-        <View style={styles.notificationsSection}>
-          <Text style={styles.sectionTitle}>Recent Notifications</Text>
-          {notifications.map((notification) => (
-            <Card key={notification.id} style={styles.notificationCard}>
-              <View style={styles.notificationContent}>
-                <Bell size={18} color={Colors.primary[500]} style={styles.notificationIcon} />
-                <View style={styles.notificationTextContainer}>
-                  <Text style={styles.notificationTitle}>{notification.title}</Text>
-                  <Text style={styles.notificationTime}>{notification.time}</Text>
-                </View>
-              </View>
-            </Card>
-          ))}
-        </View>
+          <View style={styles.cardsContainer}>
+            <Text style={styles.sectionTitle}>Quick Access</Text>
 
-        {user?.isAdmin && (
-          <View style={styles.adminSection}>
-            <Text style={styles.sectionTitle}>Admin Tools</Text>
-            <Card style={styles.adminCard}>
-              <Text style={styles.adminCardTitle}>Upload Documents</Text>
-              <Text style={styles.adminCardDescription}>
-                Add new policies, guidelines, or meeting minutes for your community
-              </Text>
-              <TouchableOpacity 
-                style={styles.adminCardButton}
-                onPress={() => router.push('/(tabs)/upload')}
+            <View style={styles.grid}>
+              <TouchableOpacity
+                style={styles.gridItem}
+                onPress={() => router.push('/(tabs)/documents')}
               >
-                <Text style={styles.adminCardButtonText}>Upload Now</Text>
+                <View style={[styles.gridItemIcon, { backgroundColor: Colors.primary[50] }]}>
+                  <FileText size={28} color={Colors.primary[500]} />
+                </View>
+                <Text style={styles.gridItemTitle}>Documents</Text>
               </TouchableOpacity>
-            </Card>
-          </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
 
-function QuickLinkItem({ icon, title, onPress }: { 
-  icon: React.ReactNode; 
-  title: string; 
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity style={styles.quickLinkItem} onPress={onPress}>
-      <View style={styles.quickLinkIconContainer}>{icon}</View>
-      <Text style={styles.quickLinkTitle}>{title}</Text>
-    </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.gridItem}
+                onPress={() => router.push('/(tabs)/chatbot')}
+              >
+                <View style={[styles.gridItemIcon, { backgroundColor: Colors.accent[50] }]}>
+                  <MessageSquare size={28} color={Colors.accent[500]} />
+                </View>
+                <Text style={styles.gridItemTitle}>Assistant</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.gridItem}
+              >
+                <View style={[styles.gridItemIcon, { backgroundColor: Colors.secondary[50] }]}>
+                  <Calendar size={28} color={Colors.secondary[500]} />
+                </View>
+                <Text style={styles.gridItemTitle}>Events</Text>
+              </TouchableOpacity>
+
+              {user?.isAdmin ? (
+                <TouchableOpacity
+                  style={styles.gridItem}
+                >
+                  <View style={[styles.gridItemIcon, { backgroundColor: Colors.primary[50] }]}>
+                    <Users size={28} color={Colors.primary[500]} />
+                  </View>
+                  <Text style={styles.gridItemTitle}>Members</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.gridItem}
+                >
+                  <View style={[styles.gridItemIcon, { backgroundColor: Colors.accent[50] }]}>
+                    <Bell size={28} color={Colors.accent[500]} />
+                  </View>
+                  <Text style={styles.gridItemTitle}>Alerts</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.cardsContainer}>
+            <Text style={styles.sectionTitle}>Recent Notifications</Text>
+
+            {notifications.map((notification) => (
+              <Card key={notification.id} style={styles.notificationCard}>
+                <View style={styles.notificationContent}>
+                  <View style={styles.notificationIconContainer}>
+                    <Bell size={18} color={Colors.primary[500]} />
+                  </View>
+                  <View style={styles.notificationTextContainer}>
+                    <Text style={styles.notificationTitle}>{notification.title}</Text>
+                    <Text style={styles.notificationTime}>{notification.time}</Text>
+                  </View>
+                </View>
+              </Card>
+            ))}
+          </View>
+
+          {user?.isAdmin && (
+            <View style={styles.cardsContainer}>
+              <Text style={styles.sectionTitle}>Admin Tools</Text>
+              <Card style={styles.adminCard} variant="elevated">
+                <Text style={styles.adminCardTitle}>Upload Documents</Text>
+                <Text style={styles.adminCardDescription}>
+                  Add new policies, guidelines, or meeting minutes for your community
+                </Text>
+                <TouchableOpacity
+                  style={styles.adminCardButton}
+                  onPress={() => router.push('/(tabs)/upload')}
+                >
+                  <Text style={styles.adminCardButtonText}>Upload Now</Text>
+                </TouchableOpacity>
+              </Card>
+            </View>
+          )}
+
+          <View style={styles.spacer} />
+        </Animated.View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -136,121 +179,82 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.neutral[50],
   },
-  header: {
-    backgroundColor: Colors.primary[500],
-    padding: Layout.spacing.lg,
-    paddingBottom: Layout.spacing.xl,
+  profileButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: Colors.primary[100],
   },
-  welcomeText: {
-    fontSize: 16,
-    color: Colors.primary[100],
-    marginBottom: 2,
-  },
-  communityName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.white,
+  profileAvatar: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: Colors.primary[300],
   },
   heroContainer: {
-    position: 'relative',
     height: 180,
-    margin: Layout.spacing.lg,
+    marginHorizontal: Layout.spacing.lg,
+    marginTop: Layout.spacing.md,
     borderRadius: Layout.borderRadius.lg,
     overflow: 'hidden',
-    marginTop: -Layout.spacing.md,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   heroImage: {
-    position: 'absolute',
     width: '100%',
     height: '100%',
   },
-  heroContent: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: Layout.spacing.lg,
-    justifyContent: 'center',
-  },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: Colors.white,
-    marginBottom: 4,
-  },
-  heroSubtitle: {
-    fontSize: 16,
-    color: Colors.white,
-    marginBottom: Layout.spacing.md,
-  },
-  heroButton: {
-    backgroundColor: Colors.primary[500],
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: Layout.borderRadius.pill,
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-  },
-  heroButtonText: {
-    color: Colors.white,
-    fontWeight: '600',
-    fontSize: 14,
+  cardsContainer: {
+    paddingHorizontal: Layout.spacing.lg,
+    marginTop: Layout.spacing.xl,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.neutral[800],
     marginBottom: Layout.spacing.md,
-    paddingHorizontal: Layout.spacing.lg,
   },
-  quickLinks: {
-    marginVertical: Layout.spacing.lg,
-  },
-  linkGrid: {
+  grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: Layout.spacing.md,
+    marginHorizontal: -Layout.spacing.xs,
   },
-  quickLinkItem: {
-    width: '33%',
-    alignItems: 'center',
-    marginBottom: Layout.spacing.lg,
+  gridItem: {
+    width: '50%',
+    padding: Layout.spacing.xs,
+    marginBottom: Layout.spacing.md,
   },
-  quickLinkIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: Colors.white,
+  gridItemIcon: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: Layout.borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: Layout.spacing.sm,
   },
-  quickLinkTitle: {
+  gridItemTitle: {
     fontSize: 14,
-    color: Colors.neutral[700],
+    fontWeight: '500',
+    color: Colors.neutral[800],
     textAlign: 'center',
   },
-  notificationsSection: {
-    marginBottom: Layout.spacing.lg,
-  },
   notificationCard: {
-    marginHorizontal: Layout.spacing.lg,
     marginBottom: Layout.spacing.md,
-    padding: Layout.spacing.md,
   },
   notificationContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  notificationIcon: {
+  notificationIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primary[50],
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: Layout.spacing.md,
   },
   notificationTextContainer: {
@@ -266,12 +270,7 @@ const styles = StyleSheet.create({
     color: Colors.neutral[500],
     marginTop: 2,
   },
-  adminSection: {
-    marginBottom: Layout.spacing.xl,
-  },
   adminCard: {
-    marginHorizontal: Layout.spacing.lg,
-    padding: Layout.spacing.lg,
     backgroundColor: Colors.primary[50],
   },
   adminCardTitle: {
@@ -297,4 +296,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 14,
   },
+  spacer: {
+  height: 80,
+    },
 });
