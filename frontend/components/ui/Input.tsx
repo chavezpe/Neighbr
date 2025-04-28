@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { ReactNode } from 'react';
 import {
   View,
   TextInput,
@@ -6,158 +6,118 @@ import {
   StyleSheet,
   TextInputProps,
   ViewStyle,
-  TextStyle,
-  TouchableOpacity,
 } from 'react-native';
-import { Eye, EyeOff } from 'lucide-react-native';
-import Colors from '../../constants/Colors';
-import Layout from '../../constants/Layout';
+import Colors from '@/constants/Colors';
+import Layout from '@/constants/Layout';
 
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
-  helper?: string;
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
   containerStyle?: ViewStyle;
-  labelStyle?: TextStyle;
-  inputStyle?: ViewStyle;
-  rightIcon?: React.ReactNode;
+  inputContainerStyle?: ViewStyle;
   fullWidth?: boolean;
-  secureTextEntry?: boolean;
 }
 
-export const Input: React.FC<InputProps> = ({
+export default function Input({
   label,
   error,
-  helper,
-  containerStyle,
-  labelStyle,
-  inputStyle,
+  leftIcon,
   rightIcon,
+  containerStyle,
+  inputContainerStyle,
   fullWidth = false,
-  secureTextEntry = false,
-  ...rest
-}) => {
-  const [isFocused, setIsFocused] = useState(false);
-  const [showPassword, setShowPassword] = useState(!secureTextEntry);
-
-  const handleFocus = () => setIsFocused(true);
-  const handleBlur = () => setIsFocused(false);
-
-  // Generate styles based on state
-  const containerStyles = [
-    styles.container,
-    fullWidth && styles.fullWidth,
-    containerStyle,
-  ];
-
-  const inputContainerStyles = [
-    styles.inputContainer,
-    isFocused && styles.focused,
-    error && styles.error,
-    fullWidth && styles.fullWidth,
-  ];
-
-  const textInputStyles = [
-    styles.input,
-    fullWidth && styles.fullWidth,
-    inputStyle,
-  ];
-
-  const renderPasswordToggle = () => {
-    if (!secureTextEntry) return null;
-
-    return (
-      <TouchableOpacity
-        style={styles.iconContainer}
-        onPress={() => setShowPassword(!showPassword)}
-      >
-        {showPassword ? (
-          <EyeOff size={20} color={Colors.neutral[600]} />
-        ) : (
-          <Eye size={20} color={Colors.neutral[600]} />
-        )}
-      </TouchableOpacity>
-    );
-  };
-
+  ...props
+}: InputProps) {
   return (
-    <View style={containerStyles}>
-      {label && (
-        <Text style={[styles.label, labelStyle]}>{label}</Text>
-      )}
-      
-      <View style={inputContainerStyles}>
+    <View
+      style={[
+        styles.container,
+        fullWidth ? styles.fullWidth : undefined,
+        containerStyle,
+      ]}
+    >
+      {label && <Text style={styles.label}>{label}</Text>}
+      <View
+        style={[
+          styles.inputContainer,
+          leftIcon ? styles.withLeftIcon : undefined,
+          rightIcon ? styles.withRightIcon : undefined,
+          error ? styles.inputError : undefined,
+          inputContainerStyle,
+        ]}
+      >
+        {leftIcon && <View style={styles.leftIcon}>{leftIcon}</View>}
         <TextInput
-          style={textInputStyles}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          placeholderTextColor={Colors.neutral[500]}
-          secureTextEntry={secureTextEntry && !showPassword}
-          {...rest}
+          style={[
+            styles.input,
+            leftIcon ? styles.inputWithLeftIcon : undefined,
+            rightIcon ? styles.inputWithRightIcon : undefined,
+          ]}
+          placeholderTextColor={Colors.neutral[400]}
+          {...props}
         />
-        
-        {rightIcon && <View style={styles.iconContainer}>{rightIcon}</View>}
-        {secureTextEntry && renderPasswordToggle()}
+        {rightIcon && <View style={styles.rightIcon}>{rightIcon}</View>}
       </View>
-      
-      {error && (
-        <Text style={styles.errorText}>{error}</Text>
-      )}
-      
-      {helper && !error && (
-        <Text style={styles.helperText}>{helper}</Text>
-      )}
+      {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     marginBottom: Layout.spacing.md,
   },
+  fullWidth: {
+    width: '100%',
+  },
   label: {
     fontSize: 14,
     fontWeight: '500',
-    marginBottom: 6,
     color: Colors.neutral[800],
+    marginBottom: Layout.spacing.xs,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.neutral[300],
     borderRadius: Layout.borderRadius.md,
-    backgroundColor: Colors.white,
+    overflow: 'hidden',
+  },
+  withLeftIcon: {
+    paddingLeft: 0,
+  },
+  withRightIcon: {
+    paddingRight: 0,
   },
   input: {
     flex: 1,
+    height: 46,
     paddingHorizontal: Layout.spacing.md,
-    paddingVertical: Layout.spacing.md,
     fontSize: 16,
     color: Colors.neutral[900],
   },
-  focused: {
-    borderColor: Colors.primary[500],
+  inputWithLeftIcon: {
+    paddingLeft: Layout.spacing.xs,
   },
-  error: {
-    borderColor: Colors.error.main,
+  inputWithRightIcon: {
+    paddingRight: Layout.spacing.xs,
   },
-  iconContainer: {
+  leftIcon: {
     paddingHorizontal: Layout.spacing.md,
   },
+  rightIcon: {
+    paddingHorizontal: Layout.spacing.md,
+  },
+  inputError: {
+    borderColor: Colors.error.main,
+  },
   errorText: {
-    fontSize: 12,
     color: Colors.error.main,
-    marginTop: 4,
-  },
-  helperText: {
     fontSize: 12,
-    color: Colors.neutral[600],
-    marginTop: 4,
-  },
-  fullWidth: {
-    width: '100%',
+    marginTop: Layout.spacing.xs,
   },
 });
-
-export default Input;

@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Animated
+} from 'react-native';
 import { FileText, Download, Search } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import { getDocuments } from '@/api/documents';
 import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
+import Header from '@/components/Header';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import Colors from '@/constants/Colors';
 import Layout from '@/constants/Layout';
@@ -26,8 +33,16 @@ export default function DocumentsScreen() {
   const [categories, setCategories] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
     fetchDocuments();
+
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
   }, []);
 
   const fetchDocuments = async () => {
@@ -36,8 +51,7 @@ export default function DocumentsScreen() {
       if (user?.communityId) {
         const docs = await getDocuments(user.communityId);
         setDocuments(docs);
-        
-        // Extract unique categories
+
         const uniqueCategories = [...new Set(docs.map(doc => doc.type))];
         setCategories(uniqueCategories);
       }
@@ -55,14 +69,11 @@ export default function DocumentsScreen() {
   });
 
   const handleDownload = (document: Document) => {
-    // In a real app, you would implement document download here
     console.log('Downloading document:', document.name);
-    // For web, you might redirect to document.url
-    // For mobile, you might use FileSystem from Expo to save the file
   };
 
   const renderDocumentItem = ({ item }: { item: Document }) => (
-    <Card style={styles.documentCard}>
+    <TouchableOpacity style={styles.documentCard}>
       <View style={styles.documentContent}>
         <View style={styles.documentIconContainer}>
           <FileText size={24} color={Colors.primary[500]} />
@@ -73,14 +84,14 @@ export default function DocumentsScreen() {
             {item.type} • {item.uploadDate}
           </Text>
         </View>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.downloadButton}
           onPress={() => handleDownload(item)}
         >
           <Download size={20} color={Colors.primary[500]} />
         </TouchableOpacity>
       </View>
-    </Card>
+    </TouchableOpacity>
   );
 
   if (isLoading) {
@@ -88,58 +99,56 @@ export default function DocumentsScreen() {
   }
 
   return (
-    <SafeAreaView edges={['top']} style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Documents</Text>
-        <Text style={styles.subtitle}>Access your community documents</Text>
-      </View>
-      
-      <View style={styles.searchContainer}>
-        <Input
-          placeholder="Search documents..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          rightIcon={<Search size={20} color={Colors.neutral[400]} />}
-          fullWidth
-          containerStyle={styles.searchInputContainer}
-        />
-      </View>
-      
-      {categories.length > 0 && (
-        <View style={styles.categoriesContainer}>
-          <ScrollableCategories 
-            categories={categories} 
-            activeCategory={activeCategory}
-            onSelectCategory={setActiveCategory}
+    <View style={styles.container}>
+      <Animated.View style={[{ flex: 1, opacity: fadeAnim }]}>
+        <View style={styles.searchContainer}>
+          <Input
+            placeholder="Search documents..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            rightIcon={<Search size={20} color={Colors.neutral[400]} />}
+            fullWidth
+            containerStyle={styles.searchInputContainer}
           />
         </View>
-      )}
-      
-      {filteredDocuments.length > 0 ? (
-        <FlatList
-          data={filteredDocuments}
-          renderItem={renderDocumentItem}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.documentsList}
-        />
-      ) : (
-        <View style={styles.emptyState}>
-          <FileText size={48} color={Colors.neutral[300]} />
-          <Text style={styles.emptyStateText}>
-            {searchQuery
-              ? 'No documents found matching your search'
-              : 'No documents available'}
-          </Text>
-        </View>
-      )}
-    </SafeAreaView>
+
+        {categories.length > 0 && (
+          <View style={styles.categoriesContainer}>
+            <ScrollableCategories
+              categories={categories}
+              activeCategory={activeCategory}
+              onSelectCategory={setActiveCategory}
+            />
+          </View>
+        )}
+
+        {filteredDocuments.length > 0 ? (
+          <FlatList
+            data={filteredDocuments}
+            renderItem={renderDocumentItem}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.documentsList}
+            showsVerticalScrollIndicator={false}
+          />
+        ) : (
+          <View style={styles.emptyState}>
+            <FileText size={48} color={Colors.neutral[300]} />
+            <Text style={styles.emptyStateText}>
+              {searchQuery
+                ? 'No documents found matching your search'
+                : 'No documents available'}
+            </Text>
+          </View>
+        )}
+      </Animated.View>
+    </View>
   );
 }
 
-function ScrollableCategories({ 
-  categories, 
-  activeCategory, 
-  onSelectCategory 
+function ScrollableCategories({
+  categories,
+  activeCategory,
+  onSelectCategory
 }: {
   categories: string[];
   activeCategory: string | null;
@@ -183,43 +192,24 @@ function ScrollableCategories({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.neutral[50],
-  },
-  header: {
-    backgroundColor: Colors.primary[500],
-    padding: Layout.spacing.lg,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.white,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: Colors.primary[100],
-    marginTop: 2,
+    backgroundColor: Colors.white,
   },
   searchContainer: {
-    padding: Layout.spacing.md,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.neutral[200],
+    paddingHorizontal: Layout.spacing.lg,
+    paddingVertical: Layout.spacing.md,
   },
   searchInputContainer: {
     marginBottom: 0,
   },
   categoriesContainer: {
-    backgroundColor: Colors.white,
     paddingBottom: Layout.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.neutral[200],
   },
   categoriesList: {
-    paddingHorizontal: Layout.spacing.md,
+    paddingHorizontal: Layout.spacing.lg,
   },
   categoryChip: {
     paddingHorizontal: Layout.spacing.md,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: Layout.borderRadius.pill,
     backgroundColor: Colors.neutral[100],
     marginRight: Layout.spacing.sm,
@@ -236,19 +226,27 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   documentsList: {
-    padding: Layout.spacing.md,
+    padding: Layout.spacing.lg,
   },
   documentCard: {
+    backgroundColor: Colors.white,
+    borderRadius: Layout.borderRadius.lg,
     marginBottom: Layout.spacing.md,
+    padding: Layout.spacing.md,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   documentContent: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   documentIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
+    width: 44,
+    height: 44,
+    borderRadius: Layout.borderRadius.md,
     backgroundColor: Colors.primary[50],
     justifyContent: 'center',
     alignItems: 'center',
@@ -268,9 +266,9 @@ const styles = StyleSheet.create({
     color: Colors.neutral[500],
   },
   downloadButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Colors.primary[50],
     justifyContent: 'center',
     alignItems: 'center',

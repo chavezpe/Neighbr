@@ -1,25 +1,24 @@
 import React from 'react';
-import { View, ActivityIndicator, StyleSheet, Text, ViewStyle } from 'react-native';
-import Colors from '../../constants/Colors';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import Colors from '@/constants/Colors';
+import Layout from '@/constants/Layout';
 
 interface LoadingSpinnerProps {
   size?: 'small' | 'large';
   color?: string;
   text?: string;
   fullScreen?: boolean;
-  style?: ViewStyle;
 }
 
-export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
+export default function LoadingSpinner({
   size = 'large',
   color = Colors.primary[500],
   text,
   fullScreen = false,
-  style,
-}) => {
+}: LoadingSpinnerProps) {
   if (fullScreen) {
     return (
-      <View style={[styles.fullScreen, style]}>
+      <View style={styles.fullScreen}>
         <ActivityIndicator size={size} color={color} />
         {text && <Text style={styles.text}>{text}</Text>}
       </View>
@@ -27,36 +26,35 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   }
 
   return (
-    <View style={[styles.container, style]}>
+    <View style={styles.container}>
       <ActivityIndicator size={size} color={color} />
       {text && <Text style={styles.text}>{text}</Text>}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    padding: Layout.spacing.md,
   },
   fullScreen: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     zIndex: 999,
   },
   text: {
-    marginTop: 10,
     fontSize: 16,
+    marginLeft: Layout.spacing.md,
     color: Colors.neutral[700],
-    textAlign: 'center',
   },
 });
-
-export default LoadingSpinner;
