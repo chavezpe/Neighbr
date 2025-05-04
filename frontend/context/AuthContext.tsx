@@ -7,7 +7,7 @@ import { jwtDecode } from 'jwt-decode';
 type DecodedToken = {
   sub: string;
   user_id: string;
-  community_id: string;
+  community_code: string;
   is_admin: boolean;
   exp: number;
 };
@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user: {
           id: decoded.user_id,
           email: decoded.sub,
-          communityId: decoded.community_id,
+          communityId: decoded.community_code,
           isAdmin: decoded.is_admin,
         },
         isLoading: false,
@@ -113,7 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           user: {
             id: decoded.user_id,
             email: decoded.sub,
-            communityId: decoded.community_id,
+            communityId: decoded.community_code,
             isAdmin: decoded.is_admin,
           },
           isLoading: false,
@@ -146,7 +146,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           user: {
             id: decoded.user_id,
             email: decoded.sub,
-            communityId: decoded.community_id,
+            communityId: decoded.community_code,
             isAdmin: decoded.is_admin,
           },
           isLoading: false,

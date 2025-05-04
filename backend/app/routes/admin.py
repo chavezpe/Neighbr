@@ -44,6 +44,29 @@ class DeleteCommunityRequest(BaseModel):
 	"""
 	
 	community_code: str
+	
+
+class ViewAllUsersRequest(BaseModel):
+	
+	"""
+
+	View all users request model.
+
+	"""
+	
+	community_code: str
+	
+	
+class DeleteUserRequest(BaseModel):
+	
+	"""
+
+	Delete user request model.
+
+	"""
+	
+	email: EmailStr
+	hoa_code: str
 
 
 @router.post("/create_community", tags = ["admin"])
@@ -166,4 +189,75 @@ async def delete_community(
 	except Exception as e:
 		
 		# Handle any exceptions that occur during the deletion
+		raise HTTPException(status_code = 500, detail = str(e))
+	
+	
+@router.post('/view_all_users', tags = ['admin'])
+async def view_all_users(
+		request: ViewAllUsersRequest,
+		# payload: dict = Depends(verify_token)
+		):
+	
+	"""
+	
+	View all users in the community.
+	
+	:param request: Request object containing community code
+	:type request: DeleteCommunityRequest
+	:param payload: Decoded JWT token payload
+	:type payload: dict
+	
+	:return: JSON response with list of users
+	:rtype: dict
+	
+	"""
+	
+	try:
+		
+		# # Check if the user is an admin
+		# if not payload.get("is_admin"):
+		#
+		# 	# Raise an HTTP exception if the user is not an admin
+		# 	raise HTTPException(status_code = 403, detail = "Admin access required.")
+		
+		# Fetch all users from the database
+		users = await db.get_users_by_community_code(
+				hoa_code = request.community_code
+				)
+		
+		return {"users": users}
+	
+	except Exception as e:
+		
+		raise HTTPException(status_code = 500, detail = str(e))
+	
+	
+@router.post('/delete_user', tags = ['admin'])
+async def delete_user(
+		request: DeleteUserRequest,
+		):
+	
+	"""
+	
+	Delete a user from the community.
+	
+	:param request: Request object containing user email and HOA code
+	:type request: DeleteUserRequest
+	
+	:return: JSON response with success message
+	:rtype: dict
+	
+	"""
+	
+	try:
+		
+		await db.delete_user_by_email(
+				email = request.email,
+				hoa_code = request.hoa_code
+				)
+		
+		return {"message": "User deleted successfully"}
+	
+	except Exception as e:
+		
 		raise HTTPException(status_code = 500, detail = str(e))

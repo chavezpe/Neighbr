@@ -316,21 +316,20 @@ class Database:
 			await conn.execute(
 					"""
 					CREATE TABLE IF NOT EXISTS communities (
-						id SERIAL PRIMARY KEY,
-						name VARCHAR(100) NOT NULL,
-						code VARCHAR(50) UNIQUE NOT NULL,
-						max_households INTEGER NOT NULL,
-						current_households INTEGER NOT NULL DEFAULT 0
-					);
+					code VARCHAR(50) PRIMARY KEY,
+					name VARCHAR(100) NOT NULL,
+					max_households INTEGER NOT NULL,
+					current_households INTEGER NOT NULL DEFAULT 0
+				);
 
-					CREATE TABLE IF NOT EXISTS users (
-						id SERIAL PRIMARY KEY,
-						name VARCHAR(100) NOT NULL,
-						email VARCHAR(100) UNIQUE NOT NULL,
-						hashed_password TEXT NOT NULL,
-						is_admin BOOLEAN DEFAULT FALSE,
-						community_id INTEGER REFERENCES communities(id) ON DELETE CASCADE
-					);
+				CREATE TABLE IF NOT EXISTS users (
+					id SERIAL PRIMARY KEY,
+					name VARCHAR(100) NOT NULL,
+					email VARCHAR(100) UNIQUE NOT NULL,
+					hashed_password TEXT NOT NULL,
+					is_admin BOOLEAN DEFAULT FALSE,
+					community_code VARCHAR(50) REFERENCES communities(code) ON DELETE CASCADE
+				);
 					"""
 					)
 	
@@ -360,7 +359,7 @@ class Database:
 			async with conn.transaction():
 				community = await conn.fetchrow(
 						"""
-						SELECT id, current_households, max_households
+						SELECT code, current_households, max_households
 						FROM communities
 						WHERE code = $1
 						""",
@@ -375,20 +374,71 @@ class Database:
 				
 				await conn.execute(
 						"""
-						INSERT INTO users (name, email, hashed_password, is_admin, community_id)
+						INSERT INTO users (name, email, hashed_password, is_admin, community_code)
 						VALUES ($1, $2, $3, $4, $5)
 						""",
-						name, email, hashed_password, is_admin, community["id"]
+						name, email, hashed_password, is_admin, community["code"]
 						)
 				
 				await conn.execute(
 						"""
 						UPDATE communities
 						SET current_households = current_households + 1
-						WHERE id = $1
+						WHERE code = $1
 						""",
-						community["id"]
+						community["code"]
 						)
+	
+	
+	async def get_users_by_community_code(self, hoa_code: str) -> list:
+		
+		"""
+		
+		Get all users in a community by HOA code.
+		
+		:param hoa_code: HOA code of the community
+		:type hoa_code: str
+		:return: List of users in the community
+		:rtype: list[dict]
+		"""
+		
+		# Query to fetch users by community code
+		async with self.pool.acquire() as conn:
+			
+			# Fetch the users in the community
+			users = await conn.fetch(
+				"""
+				SELECT name, email, is_admin
+				FROM users
+				WHERE community_code = $1
+				ORDER BY name
+				""", hoa_code
+				)
+			
+		# Convert the result to a list of dictionaries
+		return [dict(user) for user in users]
+	
+	
+	async def get_community_by_code(self, code: str):
+		
+		"""
+		
+		Fetch a community name by its HOA code.
+		
+		:param code: HOA code of the community
+		:type code: str
+		:return: Community record if found, None otherwise
+		:rtype: dict or None
+		"""
+		
+		# Query to fetch community by code
+		async with self.pool.acquire() as conn:
+			
+			# Fetch the community record
+			return await conn.fetchrow(
+					"SELECT * FROM communities WHERE code = $1",
+					code
+					)
 	
 	
 	async def create_community_with_admin(self, name, max_households, admin_name, admin_email, hashed_password) -> str:
@@ -435,11 +485,11 @@ class Database:
 					hoa_code = self.generate_hoa_code()
 				
 				# Insert community
-				community_id = await conn.fetchval(
+				community_code = await conn.fetchval(
 						"""
 						INSERT INTO communities (name, code, max_households, current_households)
 						VALUES ($1, $2, $3, 1)
-						RETURNING id
+						RETURNING code
 						""",
 						name, hoa_code, max_households
 						)
@@ -447,10 +497,10 @@ class Database:
 				# Insert admin user
 				await conn.execute(
 						"""
-						INSERT INTO users (name, email, hashed_password, is_admin, community_id)
+						INSERT INTO users (name, email, hashed_password, is_admin, community_code)
 						VALUES ($1, $2, $3, TRUE, $4)
 						""",
-						admin_name, admin_email, hashed_password, community_id
+						admin_name, admin_email, hashed_password, community_code
 						)
 		
 		return hoa_code
@@ -524,3 +574,28 @@ class Database:
 		async with self.pool.acquire() as conn:
 			# Fetch the user record
 			return await conn.fetchrow(query, email)
+		
+		
+	async def delete_user_by_email(self, email: str, hoa_code: str):
+		
+		"""
+		
+		Delete a user by their email address.
+		
+		:param email: Email address of the user
+		:type email: str
+		:param hoa_code: HOA code of the community
+		:type hoa_code: str
+		
+		:return: None
+		:rtype: None
+		"""
+		
+		async with self.pool.acquire() as conn:
+			await conn.execute(
+					"""
+					DELETE FROM users
+					WHERE email = $1 AND community_code = $2
+					""",
+					email, hoa_code
+					)

@@ -8,7 +8,8 @@ from routes.auth import router as auth_router
 from utils.db_instance import db
 
 
-# "HOA-520-293-884"
+# "HOA-232-167-329"
+# will@neighbrapp.com
 
 test_credentials = {
     "name": "Test-HOA",

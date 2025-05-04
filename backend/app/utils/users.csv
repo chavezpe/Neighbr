@@ -1,2 +1,3 @@
-id,name,email,hashed_password,is_admin,community_id
-1,Angel Chavez,achavezpen@gmail.com,$2b$12$oBL1CZR0lewZvutuCDXfVuL7mwrErvp.Nm6I.Beki4nVqAKodWfQ2,True,1
+id,name,email,hashed_password,is_admin,community_code
+1,Angel Chavez,achavezpen@gmail.com,$2b$12$uOi./5IylheJML8OMgLVpOU3oZmqS0n2YyXdIuffNWS.FFWcXz8C.,True,HOA-232-167-329
+2,Will,will@neighbrapp.com,$2b$12$4KffH4S.15r6BlIOL425SuXn46ctshe4QHwwcmRfoBZPBFiZGpZeC,False,HOA-232-167-329

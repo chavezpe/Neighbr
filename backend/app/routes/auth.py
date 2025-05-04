@@ -72,7 +72,7 @@ async def signup(
 	token_data = {
 		"sub": email,
 		"user_id": str(user["id"]),
-		"community_id": str(user["community_id"]),
+		"community_code": str(user["community_code"]),
 		"is_admin": False
 		}
 	
@@ -112,11 +112,15 @@ async def login(email: str = Form(...), password: str = Form(...)):
 				detail = "Invalid email or password."
 				)
 	
+	# Get community name
+	community = await db.get_community_by_code(user["community_code"])
+	
 	# Store user data in the token
 	token_data = {
 		"sub": email,
 		"user_id": str(user["id"]),
-		"community_id": str(user["community_id"]),
+		"community_code": str(user["community_code"]),
+		"community_name": community["name"],
 		"is_admin": user["is_admin"],
 		}
 	
