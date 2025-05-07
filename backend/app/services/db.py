@@ -599,3 +599,13 @@ class Database:
 					""",
 					email, hoa_code
 					)
+			
+			# Drop the user count by 1
+			await conn.execute(
+					"""
+					UPDATE communities
+					SET current_households = current_households - 1
+					WHERE code = $1
+					""",
+					hoa_code
+					)
