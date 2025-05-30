@@ -247,6 +247,7 @@ async def delete_user(
 	:return: JSON response with success message
 	:rtype: dict
 	
+	
 	"""
 	
 	try:
