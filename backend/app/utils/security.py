@@ -1,4 +1,7 @@
 import bcrypt
+import os
+from datetime import datetime, timedelta
+from jose import jwt
 
 
 def hash_password(password: str) -> str:
@@ -36,3 +39,29 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 	
 	# Returns True if the password matches, False otherwise
 	return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+
+
+def generate_reset_token(email: str) -> str:
+    """
+    Generate a password reset token.
+    """
+    secret_key = os.getenv("RESET_TOKEN_SECRET")
+    expires = datetime.utcnow() + timedelta(hours=24)
+    
+    return jwt.encode(
+        {"email": email, "exp": expires},
+        secret_key,
+        algorithm="HS256"
+    )
+
+
+def verify_reset_token(token: str) -> str:
+    """
+    Verify a password reset token and return the email if valid.
+    """
+    secret_key = os.getenv("RESET_TOKEN_SECRET")
+    try:
+        payload = jwt.decode(token, secret_key, algorithms=["HS256"])
+        return payload["email"]
+    except:
+        raise ValueError("Invalid or expired reset token")

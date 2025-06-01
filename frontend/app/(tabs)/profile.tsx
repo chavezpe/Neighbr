@@ -1,14 +1,18 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Animated } from 'react-native';
-import { LogOut, Settings, CircleHelp as HelpCircle, Shield, CircleUser as UserCircle, Chrome as Home } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Animated, Modal } from 'react-native';
+import { LogOut, Settings, CircleHelp as HelpCircle, Shield, CircleUser as UserCircle, Chrome as Home, Lock } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 import Colors from '@/constants/Colors';
 import Layout from '@/constants/Layout';
+import axios from 'axios';
+import { API_URL } from '@/constants/Config';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
@@ -75,6 +79,12 @@ export default function ProfileScreen() {
               subtitle={user?.communityId ? 'View community details' : 'Not joined yet'}
             />
             <MenuItem
+              icon={<Lock size={22} color={Colors.neutral[700]} />}
+              title="Change Password"
+              subtitle="Update your password"
+              onPress={() => setShowPasswordModal(true)}
+            />
+            <MenuItem
               icon={<Settings size={22} color={Colors.neutral[700]} />}
               title="Account Settings"
               subtitle="Notifications, preferences"
@@ -109,6 +119,11 @@ export default function ProfileScreen() {
             <Text style={styles.version}>Version 1.0.0</Text>
           </View>
         </ScrollView>
+
+        <ChangePasswordModal
+          visible={showPasswordModal}
+          onClose={() => setShowPasswordModal(false)}
+        />
       </Animated.View>
     </View>
   );
@@ -133,6 +148,117 @@ function MenuItem({ icon, title, subtitle, onPress }: {
         <Text style={styles.menuItemSubtitle}>{subtitle}</Text>
       </View>
     </TouchableOpacity>
+  );
+}
+
+function ChangePasswordModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { token } = useAuth();
+
+  const handleSubmit = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      Alert.alert('Error', 'All fields are required');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      Alert.alert('Error', 'New password must be at least 8 characters long');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'New passwords do not match');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('current_password', currentPassword);
+      formData.append('new_password', newPassword);
+
+      await axios.post(`${API_URL}/auth/update-password`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      Alert.alert('Success', 'Password updated successfully');
+      onClose();
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      console.error('Password update failed:', error);
+      Alert.alert('Error', 'Failed to update password. Please check your current password and try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Change Password</Text>
+          
+          <Input
+            label="Current Password"
+            placeholder="Enter current password"
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            secureTextEntry
+            fullWidth
+          />
+
+          <Input
+            label="New Password"
+            placeholder="Enter new password"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry
+            fullWidth
+            helper="Password must be at least 8 characters"
+          />
+
+          <Input
+            label="Confirm New Password"
+            placeholder="Confirm new password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            fullWidth
+          />
+
+          <View style={styles.modalButtons}>
+            <Button
+              title="Cancel"
+              variant="outline"
+              size="md"
+              onPress={onClose}
+              style={styles.modalButton}
+            />
+            <Button
+              title="Update Password"
+              variant="primary"
+              size="md"
+              onPress={handleSubmit}
+              isLoading={isLoading}
+              style={styles.modalButton}
+            />
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -261,5 +387,32 @@ const styles = StyleSheet.create({
   version: {
     fontSize: 12,
     color: Colors.neutral[500],
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: Layout.spacing.lg,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.neutral[900],
+    marginBottom: Layout.spacing.lg,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: Layout.spacing.lg,
+  },
+  modalButton: {
+    flex: 1,
+    marginHorizontal: Layout.spacing.xs,
   },
 });

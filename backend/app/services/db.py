@@ -103,6 +103,12 @@ class Database:
 					content TEXT,
 					embedding VECTOR(3072)
 					);
+					
+					CREATE TABLE IF NOT EXISTS password_resets (
+					    email VARCHAR(100) PRIMARY KEY,
+					    token TEXT NOT NULL,
+					    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+					);
 					"""
 					)
 	
@@ -609,3 +615,58 @@ class Database:
 					""",
 					hoa_code
 					)
+
+	async def store_reset_token(self, email: str, token: str) -> None:
+		"""
+		Store a password reset token in the database.
+		"""
+		async with self.pool.acquire() as conn:
+			await conn.execute(
+				"""
+				INSERT INTO password_resets (email, token)
+				VALUES ($1, $2)
+				ON CONFLICT (email) DO UPDATE
+				SET token = $2, created_at = CURRENT_TIMESTAMP
+				""",
+				email, token
+			)
+
+	async def verify_reset_token(self, email: str, token: str) -> bool:
+		"""
+		Verify if a reset token is valid and not expired.
+		"""
+		async with self.pool.acquire() as conn:
+			result = await conn.fetchrow(
+				"""
+				SELECT token, created_at
+				FROM password_resets
+				WHERE email = $1 AND token = $2
+				AND created_at > CURRENT_TIMESTAMP - INTERVAL '24 hours'
+				""",
+				email, token
+			)
+			return bool(result)
+
+	async def remove_reset_token(self, email: str) -> None:
+		"""
+		Remove a password reset token from the database.
+		"""
+		async with self.pool.acquire() as conn:
+			await conn.execute(
+				"DELETE FROM password_resets WHERE email = $1",
+				email
+			)
+
+	async def update_password(self, email: str, hashed_password: str) -> None:
+		"""
+		Update a user's password.
+		"""
+		async with self.pool.acquire() as conn:
+			await conn.execute(
+				"""
+				UPDATE users
+				SET hashed_password = $1
+				WHERE email = $2
+				""",
+				hashed_password, email
+			)
